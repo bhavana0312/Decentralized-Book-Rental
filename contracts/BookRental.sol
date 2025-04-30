@@ -27,9 +27,15 @@ contract BookRental is ReentrancyGuard {
     mapping(uint256 => Book) public books;
     mapping(uint256 => RentalInfo) public rentals;
 
+    // Active books tracking
+    uint[] public activeBookIds;
+    mapping(uint => uint) public bookIdToActiveIndex;
+
     event BookListed(uint256 indexed itemId, string title, uint256 price, uint256 deposit);
     event BookRented(uint256 indexed itemId, address indexed renter);
     event BookReturned(uint256 indexed itemId, uint256 refund);
+    event BookUnlisted(uint256 indexed itemId, string title);
+    event RefundIssued(uint256 indexed itemId, address renter, uint256 refundAmount);
 
     modifier onlyBookOwner(uint256 _itemId) {
         require(msg.sender == books[_itemId].owner, "Not book owner");
@@ -42,43 +48,43 @@ contract BookRental is ReentrancyGuard {
     }
 
     function listItem(string memory _title, uint256 _dailyPrice, uint256 _deposit) public {
-    require(bytes(_title).length > 0, "Title cannot be empty");
-    require(_dailyPrice > 0, "Price must be greater than 0");
-    require(_deposit > 0, "Deposit must be greater than 0");
+        require(bytes(_title).length > 0, "Title cannot be empty");
+        require(_dailyPrice > 0, "Price must be greater than 0");
+        require(_deposit > 0, "Deposit must be greater than 0");
 
-    books[itemCount] = Book({
-        title: _title,
-        dailyPrice: _dailyPrice,
-        deposit: _deposit,
-        owner: msg.sender,
-        isAvailable: true
-    });
+        books[itemCount] = Book({
+            title: _title,
+            dailyPrice: _dailyPrice,
+            deposit: _deposit,
+            owner: msg.sender,
+            isAvailable: true
+        });
 
-    emit BookListed(itemCount, _title, _dailyPrice, _deposit);
-    itemCount++;
-}
+        activeBookIds.push(itemCount);
+        bookIdToActiveIndex[itemCount] = activeBookIds.length - 1;
 
+        emit BookListed(itemCount, _title, _dailyPrice, _deposit);
+        itemCount++;
+    }
 
-  function rentItem(uint256 _itemId) public payable nonReentrant {
-    Book storage book = books[_itemId];
-    require(book.isAvailable, "Book is not available");
+    function rentItem(uint256 _itemId) public payable nonReentrant {
+        Book storage book = books[_itemId];
+        require(book.isAvailable, "Book is not available");
 
-    uint256 totalCost = book.deposit + book.dailyPrice;
-    require(msg.value >= totalCost, "Insufficient ETH for renting the book");
+        uint256 totalCost = book.deposit + book.dailyPrice;
+        require(msg.value >= totalCost, "Insufficient ETH for renting the book");
+        require(address(this).balance >= totalCost, "Contract balance is insufficient");
 
-    // Check if contract has enough funds to process the transaction
-    require(address(this).balance >= totalCost, "Contract balance is insufficient");
+        book.isAvailable = false;
+        rentals[_itemId] = RentalInfo({
+            renter: msg.sender,
+            rentedAt: block.timestamp
+        });
 
-    book.isAvailable = false;
-    rentals[_itemId] = RentalInfo({
-        renter: msg.sender,
-        rentedAt: block.timestamp
-    });
+        emit BookRented(_itemId, msg.sender);
+    }
 
-    emit BookRented(_itemId, msg.sender);
-}
-
-
+    mapping(address => uint256) public pendingRefunds;
 
     function returnItem(uint256 _itemId) public nonReentrant onlyRenter(_itemId) {
         Book storage book = books[_itemId];
@@ -86,24 +92,26 @@ contract BookRental is ReentrancyGuard {
 
         require(!book.isAvailable, "Book is not rented");
 
-        uint256 rentalDuration = (block.timestamp - rent.rentedAt) / 1 days;
-        if ((block.timestamp - rent.rentedAt) % 1 days > 0) {
-            rentalDuration += 1; // count partial days as full
-        }
+        uint256 timePassed = block.timestamp - rent.rentedAt;
+        uint256 secondsElapsed = timePassed;
 
-        uint256 rentalFee = rentalDuration * book.dailyPrice;
+        uint256 penalty = 0;
         uint256 refund = 0;
+        uint256 rentalFee = book.dailyPrice;
 
-        if (book.deposit > rentalFee) {
-            refund = book.deposit - rentalFee;
+        if (secondsElapsed <= 60) {
+            refund = book.deposit;
+        } else if (secondsElapsed <= 5 * 60) {
+            penalty = (secondsElapsed / 60 - 1) * book.dailyPrice;
+            refund = book.deposit > penalty ? book.deposit - penalty : 0;
+        } else {
+            refund = 0;
         }
 
-        // Transfer rental fee to book owner
         payable(book.owner).transfer(rentalFee);
 
-        // Refund remaining deposit to renter
         if (refund > 0) {
-            payable(rent.renter).transfer(refund);
+            pendingRefunds[msg.sender] += refund;
         }
 
         book.isAvailable = true;
@@ -112,8 +120,38 @@ contract BookRental is ReentrancyGuard {
         emit BookReturned(_itemId, refund);
     }
 
-    // Add the missing getBookCount function
-    function getBookCount() public view returns (uint256) {
-        return itemCount;
+    function unlistItem(uint256 _itemId) public onlyBookOwner(_itemId) {
+        Book storage book = books[_itemId];
+        require(book.isAvailable, "Book is currently rented and cannot be unlisted");
+
+        book.isAvailable = false;
+
+        uint indexToRemove = bookIdToActiveIndex[_itemId];
+        uint lastId = activeBookIds[activeBookIds.length - 1];
+
+        activeBookIds[indexToRemove] = lastId;
+        bookIdToActiveIndex[lastId] = indexToRemove;
+
+        activeBookIds.pop();
+        delete bookIdToActiveIndex[_itemId];
+
+        emit BookUnlisted(_itemId, book.title);
+
+        delete books[_itemId];
+    }
+
+    function withdrawRefund() public nonReentrant {
+        uint256 refundAmount = pendingRefunds[msg.sender];
+        require(refundAmount > 0, "No refund available");
+
+        pendingRefunds[msg.sender] = 0;
+        (bool success, ) = msg.sender.call{value: refundAmount}("");
+        require(success, "Refund transfer failed");
+
+        emit RefundIssued(0, msg.sender, refundAmount);
+    }
+
+    function getActiveBookIds() public view returns (uint[] memory) {
+        return activeBookIds;
     }
 }

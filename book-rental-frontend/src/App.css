@@ -1,24 +1,246 @@
-.App {
-  text-align: center;
-  padding: 2rem;
+:root {
+  --primary: #4f46e5; /* Indigo */
+  --secondary: #6d28d9; /* Purple */
+  --accent: #0ea5e9; /* Sky Blue */
+  --light: #f9fafb;
+  --dark: #111827;
+  --success: #10b981; /* Emerald */
+  --danger: #ef4444; /* Red */
+  --glass: rgba(255, 255, 255, 0.15);
+  --glass-border: rgba(255, 255, 255, 0.25);
 }
 
-.book-list {
-  list-style-type: none;
+* {
+  box-sizing: border-box;
+  margin: 0;
   padding: 0;
 }
 
-.book-list li {
-  background: #f4f4f4;
-  margin-bottom: 1rem;
-  padding: 1rem;
-  border-radius: 8px;
-  text-align: left;
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #e0e7ff, #f0f9ff);
+  min-height: 100vh;
+  color: var(--dark);
+  line-height: 1.6;
 }
 
-.App-header {
-  background-color: #282c34;
-  color: white;
+.app-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2.5rem 2rem;
+}
+
+/* Header */
+.app-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  animation: fadeIn 1s ease;
+}
+
+.app-title {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(to right, var(--primary), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: bold;
+}
+
+.wallet-info {
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  padding: 1rem 1.8rem;
+  border-radius: 50px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--glass-border);
+}
+
+.wallet-label {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.wallet-address {
+  font-family: monospace;
+  color: var(--dark);
+  font-size: 0.95rem;
+}
+
+/* Glass Card */
+.glass-card {
+  background: var(--glass);
+  backdrop-filter: blur(15px);
+  border-radius: 20px;
   padding: 2rem;
+  box-shadow: 0 10px 30px rgba(31, 38, 135, 0.2);
+  border: 1px solid var(--glass-border);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 14px 40px rgba(31, 38, 135, 0.25);
+}
+
+.card-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+.emoji {
+  font-size: 3rem;
+  margin-right: 0.5rem;
+}
+
+.gradient-text {
+  background: linear-gradient(to right, var(--primary), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: bold;
+  font-size: 3rem;
+}
+
+
+/* Forms */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-input {
+  padding: 1rem;
+  border: none;
   border-radius: 10px;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+.form-input:focus {
+  outline: none;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px var(--accent);
+}
+
+/* Buttons */
+.btn {
+  margin-top: 0.75rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.primary-btn {
+  background: linear-gradient(to right, var(--primary), var(--accent));
+  color: white;
+}
+
+.primary-btn:hover,
+.primary-btn:focus {
+  transform: scale(1.03);
+  box-shadow: 0 6px 18px rgba(67, 97, 238, 0.45);
+}
+
+.danger-btn {
+  background: var(--danger);
+  color: white;
+}
+
+.danger-btn:hover {
+  background: #dc2626;
+}
+
+/* Book Cards */
+.book-card {
+  background: #ffffff;
+  padding: 1.8rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.book-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+}
+
+/* Dashboard Layout */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 5rem; /* Increased gap between Available Books and Rented */
+}
+
+/* Footer */
+.app-footer {
+  text-align: center;
+  margin-top: 3rem;
+  padding: 2rem;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.9rem;
+}
+
+/* Refund Banner */
+
+.centered-refund-banner {
+  width: 90%; /* Adjust width as needed */
+  margin: 2.5rem auto 0; /* Center horizontally */
+  background: white;
+  color: var(--dark);
+  padding: 1.8rem;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  animation: pulse 2s infinite;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+}
+
+
+
+.books-scroll-container {
+  max-height: 600px; /* Adjust height as needed */
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+/* Optional: Style scrollbar */
+.books-scroll-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.books-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 10px;
+}
+
+.books-scroll-container::-webkit-scrollbar-track {
+  background: rgb(209, 213, 219);;
+}
+
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
 }
